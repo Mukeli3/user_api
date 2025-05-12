@@ -1,14 +1,9 @@
-# venv
-ven-public-api/
-
-# Byte-compiled
+echo "venv/
+.venv/
+ven/
 __pycache__/
-
-# Environments
+*.pyc
+*.pyo
+*.pyd
 .env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+.DS_Store" > .gitignore
