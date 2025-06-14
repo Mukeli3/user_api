@@ -1,99 +1,200 @@
 # User API
 
-A lightweight RESTful API built with Python and Flask to perform basic CRUD operations on a user resource. Each user object includes: `id` (UUID), `name`, `email`, and `age`. The API uses an in-memory hashmap for data storage, suitable for development or testing environments.
+This is a Flask-based RESTful API for user management, featuring registration, login, admin user creation, JWT authentication, Redis caching, and role-based access control.
 
-```
-user_api/
-├── app/                 # Application package
-│   ├── __init__.py      # App initialization
-│   ├── errors.py        # Custom error handlers
-│   ├── models.py        # Data models and in-memory storage
-│   ├── routes.py        # API routes and CRUD endpoints
-│   ├── validate.py      # Input validation logic
-├── requirements.txt     # Project dependencies
-├── run.py               # Application entry point
-```
+---
 
 ## Features
 
-* Full CRUD support (Create, Read, Update, Delete) for user resources
-* Input validation for all fields
-* UUID for unique user IDs
-* Proper HTTP status codes and error messages
-* Modular and clean code structure
+* User registration (with role assignment)
+* Admin-only route to register new admin users
+* JWT-based login and protected endpoints
+* Role-based access (admin/user)
+* Redis caching for user retrieval
+
+---
+
+## Project Structure
+
+```
+user_api/
+├── README.md
+├── app/
+│   ├── __init__.py
+│   ├── config.py            # Configuration settings
+│   ├── errors.py            # Custom error handlers
+│   ├── models.py            # SQLAlchemy models
+│   ├── routes.py            # Flask route definitions
+│   ├── validate.py          # Data validation functions
+├── migrations/              # Database migration files (Flask-Migrate)
+├── requirements.txt         # Project dependencies
+├── run.py                   # Entry point for the Flask app
+```
 
 ## Setup Instructions
 
-1. Clone the repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/Mukeli3/user_api.git
 cd user_api
 ```
 
-2. Create a virtual environment (optional)
+### 2. Create and Activate a Virtual Environment
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python3 -m venv venv
+source venv/bin/activate
 ```
 
-3. Install dependencies
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Run the application
+### 4. Setup Environment Variables
+Create a `.env` file and add the secret keys as well as the database URI
+Run to initialize the database:
 
 ```bash
-python run.py
+export FLASK_APP=run.py
 ```
 
-The API will be available at: `http://127.0.0.1:5000/`
+### 5. Run Database Migrations
+
+```bash
+flask db init       # only the first time
+flask db migrate -m "Initial migration."
+flask db upgrade
+```
+
+### 6. Start the Application
+
+```bash
+flask run
+```
 
 ## API Endpoints
 
-| Method | Endpoint    | Description             |
-| ------ | ----------- | ----------------------- |
-| GET    | /users      | Get all users           |
-| GET    | /users/<id> | Get a specific user     |
-| POST   | /users      | Create a new user       |
-| PUT    | /users/<id> | Update an existing user |
-| DELETE | /users/<id> | Delete a user           |
+### Register a User
 
-## User Schema
+`POST /register`
 
 ```json
 {
-  "id": "uuid-string",
-  "name": "string",
-  "email": "valid-email",
-  "age": "positive-integer"
+  "name": "Jane Doe",
+  "email": "jane@example.com",
+  "password": "secret",
+  "age": 28
 }
 ```
 
-## Example cURL Request
+### Register an Admin (requires JWT from an existing admin)
 
-```bash
-curl -X POST http://127.0.0.1:5000/users \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Alice",
-    "email": "alice@example.com",
-    "age": 30
-  }'
+`POST /register-admin`
+
+```json
+{
+  "name": "Admin",
+  "email": "admin@setup.local",
+  "password": "adminpass",
+  "age": 30,
+  "role": "admin"
+}
 ```
 
-## Input Validation
+Headers:
 
-* `name`: required, non-empty string
-* `email`: required, valid email format
-* `age`: required, integer between 0–120
+```
+Authorization: Bearer <admin-token>
+Content-Type: application/json
+```
 
-Invalid requests will return a `400 Bad Request` with a descriptive error message.
+### Login
 
-## Limitations
+`POST /login`
 
-* This API uses in-memory storage; all data is lost when the server stops.
-* Not intended for production use.
+```json
+{
+  "email": "jane@example.com",
+  "password": "secret"
+}
+```
+
+Response:
+
+```json
+{
+  "access_token": "..."
+}
+```
+
+### Get All Users (Admin Only)
+
+`GET /users`
+Headers:
+
+```
+Authorization: Bearer <admin-token>
+```
+
+### Get a Single User by ID
+
+`GET /users/<id>`
+
+### Update User by ID
+
+`PUT /users/<id>`
+
+### Delete User by ID
+
+`DELETE /users/<id>`
+
+## How to Test
+
+### 1. Using `curl`
+
+Register:
+
+```bash
+curl -X POST http://localhost:5000/register \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Jane","email":"jane@example.com","password":"pass123","age":28}'
+```
+
+Login:
+
+```bash
+curl -X POST http://localhost:5000/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"jane@example.com", "password":"pass123"}'
+```
+
+Admin Register (use token from login):
+
+```bash
+curl -X POST http://localhost:5000/register-admin \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "New Admin", "email": "newadmin@example.com", "password": "pass3", "age": 40, "role": "admin"}'
+```
+
+### 2. Using Postman
+
+1. Import the API endpoints.
+2. Use the login token in the `Authorization` header as a Bearer Token.
+3. Set `Content-Type: application/json` in headers.
+4. Test all endpoints as shown above.
+
+---
+
+## Notes
+
+* Redis is used for caching: make sure it's running on `localhost:6379`
+* JWT secret is defined in your config.
+* For production, ensure `debug` is set to `False` and proper `.env` variables are used.
+
+---
+
+Happy coding! 🎉
