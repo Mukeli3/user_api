@@ -55,7 +55,7 @@ pip install -r requirements.txt
 
 ### 4. Setup Environment Variables
 Create a `.env` file and add the secret keys as well as the database URI
-Run to initialize the database:
+and run to initialize the database:
 
 ```bash
 export FLASK_APP=run.py
